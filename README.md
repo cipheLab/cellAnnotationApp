@@ -72,17 +72,9 @@ shiny::runApp()
 - **R version**: 3.6 or higher
 - **Python version**: 3.8 or higher
 
-<details>
-<summary>Dependencies versions</summary>
-<br>
-Paste here what 'pip list' gives you.
-</details>
-
 ## Contributing
 Contributions are welcome! Please feel free to submit a Pull Request or open an issue.
 
-## License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Contact
 If you have any questions, feel free to reach out to [maelle-marine.monier@inserm.fr].
