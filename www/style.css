@@ -1,0 +1,21 @@
+
+.orbit-spinner {
+  
+  height: 150px !important;
+  width: 150px !important;
+ 
+}
+
+.right-aligned {
+        display: flex;
+        justify-content: flex-end;
+          margin-right: 40px;
+   
+      }
+      
+.scyanImage {
+  
+  position:center;
+  
+  
+}
