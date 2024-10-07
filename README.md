@@ -16,17 +16,21 @@ The Cell Annotation App is a Shiny web application designed to facilitate the an
 ## Installation
 Follow the procedure :
 
-1. Install docker https://docs.docker.com/desktop/install/
-2. Launch cellAnnotationApp:
+1. Install docker h[ttps://docs.docker.com/desktop/install/](https://docs.docker.com/engine/install/)
+2. Clone the cellAnnotationApp repertory
+3. Launch cellAnnotationApp:
    - Open a terminal
-   - run the following command
-     
+   - run the following command :
+
+Go to the repertory (replace 'path/To/Repertory' by the path to cellAnnotationApp)
   ```sh
 cd path/To/Repertory/cellAnnotationApp
   ```
+Build docker image
   ```sh
 docker build -t cellAnnotationApp
   ```
+Launch the docker image 
   ```sh
 docker run -p 3838:3838 cellAnnotationApp
   ```
