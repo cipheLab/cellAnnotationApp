@@ -24,6 +24,9 @@ Clone with git :
   ```sh
 git clone https://github.com/cipheLab/cellAnnotationApp.git
   ```
+
+
+
 ![2024-10-07 11_13_46-cipheLab_cellAnnotationApp - École – Microsoft​ Edge](https://github.com/user-attachments/assets/81f7db5b-8b8a-4cba-b4da-35aa9625812f)
 
 4. Launch cellAnnotationApp:
