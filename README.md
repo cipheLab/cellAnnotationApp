@@ -14,6 +14,8 @@ The Cell Annotation App is a Shiny web application designed to facilitate the an
 - **Download**: Export the annotated FCS files and results.
 
 ## Installation
+cellAnnotationApp can be installed and run using Docker. You can install it in your own laptop.
+
 Follow the procedure :
 
 1. Install docker h[ttps://docs.docker.com/desktop/install/](https://docs.docker.com/engine/install/)
@@ -75,8 +77,6 @@ docker run -p 3838:3838 cellAnnotationApp
 
 ## System Requirements
 - **OS**: Linux, Windows, or macOS
-- **R version**: 3.6 or higher
-- **Python version**: 3.8 or higher
 
 ## Contributing
 Contributions are welcome! Please feel free to submit a Pull Request or open an issue.
