@@ -22,7 +22,7 @@ Follow the procedure :
 2. Clone the cellAnnotationApp repertory with git **or manually**.
 Clone with git : 
   ```sh
-git clone 
+git clone https://github.com/cipheLab/cellAnnotationApp.git
   ```
 4. Launch cellAnnotationApp:
    - Open a terminal
