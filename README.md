@@ -20,6 +20,10 @@ Follow the procedure :
 2. Launch cellAnnotationApp:
    - Open a terminal
    - run the following command
+     
+  ```sh
+  ```
+
 3. Open an internet browser and type :  "http://127.0.0.1:3838". CellAnnotationApp will appear in the bowser.
    
 
