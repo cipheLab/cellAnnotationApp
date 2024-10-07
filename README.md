@@ -22,8 +22,14 @@ Follow the procedure :
    - run the following command
      
   ```sh
+cd path/To/Repertory/cellAnnotationApp
   ```
-
+  ```sh
+docker build -t cellAnnotationApp
+  ```
+  ```sh
+docker run -p 3838:3838 cellAnnotationApp
+  ```
 3. Open an internet browser and type :  "http://127.0.0.1:3838". CellAnnotationApp will appear in the bowser.
    
 
