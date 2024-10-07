@@ -14,22 +14,14 @@ The Cell Annotation App is a Shiny web application designed to facilitate the an
 - **Download**: Export the annotated FCS files and results.
 
 ## Installation
-To run the application, you need to have R and the required packages installed. 
+Follow the procedure :
 
-1. Clone the repository:
-   ```sh
-   git clone https://github.com/Maelle83/CellAnnotation.git
-   cd CellAnnotation
-   ```
-2. Install the required R packages:
- ```r
-install.packages(c("shiny", "shinydashboard", "shinyjs", "shinybusy", "bslib", "xgboost", "dplyr", "tidyr", "flowCore", "DT", "FlowCIPHE", "plyr", "reticulate", "gtools", "igraph", "Rcpp", "openxlsx", "parallel"))
-```
-3. Run the Shiny application:
-
- ```r
-shiny::runApp()
-```
+1. Install docker https://docs.docker.com/desktop/install/windows-install/
+2. Launch cellAnnotationApp:
+   - Open a terminal
+   - run the following command
+3. Open an internet browser and type :  "http://127.0.0.1:3838". CellAnnotationApp will appear in the bowser.
+   
 
    ## Usage
 
