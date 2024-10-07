@@ -19,8 +19,12 @@ cellAnnotationApp can be installed and run using Docker. You can install it in y
 Follow the procedure :
 
 1. Install docker h[ttps://docs.docker.com/desktop/install/](https://docs.docker.com/engine/install/)
-2. Clone the cellAnnotationApp repertory
-3. Launch cellAnnotationApp:
+2. Clone the cellAnnotationApp repertory with git **or manually**.
+Clone with git : 
+  ```sh
+git clone 
+  ```
+4. Launch cellAnnotationApp:
    - Open a terminal
    - run the following command :
 
