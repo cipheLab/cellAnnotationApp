@@ -35,15 +35,15 @@ OR CLONE MANUALLY :
 Unzip cellAnnotationApp repertory
 Open a terminal and run the following command :
 
-Go to the repertory (replace 'path/To/Repertory' by the path to cellAnnotationApp)
+Go to the repertory (replace 'path/To/Repertory' by the path to cellAnnotationApp) : 
   ```sh
 cd path/To/Repertory/cellAnnotationApp
   ```
-Build docker image
+Build docker image :
   ```sh
 docker build -t cellAnnotationApp
   ```
-Launch the docker image 
+Launch the docker image :
   ```sh
 docker run -p 3838:3838 cellAnnotationApp
   ```
