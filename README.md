@@ -16,7 +16,7 @@ The Cell Annotation App is a Shiny web application designed to facilitate the an
 ## Installation
 Follow the procedure :
 
-1. Install docker https://docs.docker.com/desktop/install/windows-install/
+1. Install docker https://docs.docker.com/desktop/install/
 2. Launch cellAnnotationApp:
    - Open a terminal
    - run the following command
