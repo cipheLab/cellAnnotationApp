@@ -24,7 +24,7 @@ RUN pip3 install numpy
 
 # copy the app to the image
 RUN mkdir /root/cellAnnotationApp
-COPY app /root/cellAnnotationApp
+COPY * /root/cellAnnotationApp
 
 # redirect o  to cel
 RUN ls -la /root/cellAnnotationApp/*
