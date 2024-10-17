@@ -23,13 +23,18 @@ library(stringr)
 library(zip)
 
 
-
+# Import functions
 source_python("scyanFunctions.py")
-s <- import("scyan")
 source("functionsShinyApp.R")
 source("functionsScaffold.R")
 
+# Scyan module
+s <- import("scyan")
 
+source("functionsShinyApp.R")
+source("functionsScaffold.R")
+
+# Increase size limit of files for uploading
 options(expressions = 5e5, shiny.maxRequestSize = 100 * 1024^3)
 
 server <- function(input, output, session) {
@@ -74,6 +79,7 @@ server <- function(input, output, session) {
     i <- 0
 
     new.flow.frames <- lapply(as.vector(listObject$listFCS), function(x) {
+      
       i <<- i + 1
 
       progress$set(message = paste0("Reading file ... ", i, "/", length(listObject$listFCS), "."), value = i / length(as.vector(listObject$listFCS)))
@@ -109,14 +115,13 @@ server <- function(input, output, session) {
 
 
   # Launch Preprocessing
-
   observeEvent(input$submit, {
     
     # If fcs file is loaded
 
     if (!is.null(listObject$flow.frames)) {
+      
       # Apply compensation or not
-
       if (input$compensation) {
         compens <- TRUE
       } else {
@@ -132,7 +137,6 @@ server <- function(input, output, session) {
 
 
   # Extract markers
-
   observe({
     # If fcs file is loaded
     if (!is.null(listObject$flow.frames)) {
@@ -170,12 +174,8 @@ server <- function(input, output, session) {
   })
 
 
-  # updateSelectInput(session,"exclude_markers_XGBoost",choices=listObject$markersXGBoost)
-
   observeEvent(input$annotate_data_with_XGboost, {
     progress <- Progress$new()
-
-    # print(listObject$flow.frames.transformed)
 
     i <- 0
   
@@ -199,9 +199,7 @@ server <- function(input, output, session) {
       # Transform to XGBoost object
       data <- xgb.DMatrix(as.matrix(data))
 
-
       progress$set(message = paste0("Predict XGBoost annotations ... ", i, "/", length(listObject$flow.frames.transformed), "."), value = i / length(as.vector(listObject$flow.frames.transformed)))
-
 
       #  Prediction (annotation)
       predictions <- predict(listObject$model, data)
@@ -238,6 +236,7 @@ server <- function(input, output, session) {
         # Add informations of all pop
         x <- table(x$popIDXGBoost)
 
+        # Convert to data frame
         x <- as.data.frame(x)
 
         # Call the function to match label with popID
@@ -277,9 +276,8 @@ server <- function(input, output, session) {
 
 
   # Make list of XGBoost model
-
   observe({
-    # List of model already saved in app
+    # Import DYADEM model project
     models <- readRDS("model_xgboost_landmark_internship_dyadem_project.rds")
 
 
@@ -320,7 +318,6 @@ server <- function(input, output, session) {
       }
 
       # Apply clustering on all files
-
       listObject$flow.frames.transformed <- claraClustering(listObject$flow.frames.transformed, input$clustering_parameter)
     }
   })
@@ -333,16 +330,13 @@ server <- function(input, output, session) {
       listObject$marker_untrans <- extract_markers(listObject$flow.frames[[1]], NULL)
 
       # Modify selectInput with the markers presents in the fcs file
-
       updateSelectInput(session, "marker_clustering", choices = listObject$marker_untrans, selected = c("FSC-A", "SSC-A", "UV-BUV395-A", "UV-BUV661-A", "UV-BUV737-A", "V-BV421-A", "V-V500-A", "V-BV650-A", "V-BV711-A", "B-FITC-A", "B-PE-Cy5-5-A", "G-PE-Cy5-A", "G-PE-Cy7-A", "R-APC-A", "R-Alexa700-A", "R APC-Cy7-A"))
     }
   })
 
   # Scaffold Map
-
   observeEvent(input$scaffoldMap, {
     # For each fcs file build a csv tab
-
     if (!is.null(listObject$flow.frames)) {
       if (is.null(listObject$flow.frames.transformed)) {
         listObject$flow.frames.transformed <- listObject$flow.frames
@@ -352,7 +346,6 @@ server <- function(input, output, session) {
         listObject$clusteringColumn <- input$clusteringColumn
       }
       # Apply on all transformed files
-
       listObject$flow.frames.tab <- lapply(listObject$flow.frames.transformed, function(x) {
         
         # Build csv tab
@@ -363,15 +356,12 @@ server <- function(input, output, session) {
       gated.flow.frames <- NULL
 
       # List of landmark used by scaffold
-
       listLandmark <- list.files("/home/maelleWorkspace/GatedCleanLandmarkFSCTransformed", full.names = TRUE) 
 
       # Name of pop that you want to annotate
-
       namesLandmarks <- basename(listLandmark)
 
       # List of files you want to annotate
-
       listFCS <- as.character(listLandmark)[mixedorder(namesLandmarks)]
 
       # Set landmarks names
@@ -556,6 +546,7 @@ server <- function(input, output, session) {
     }
   })
   observeEvent(input$annotate_data_with_Scyan, {
+    
     progress <- Progress$new()
 
     progress$set(message = "Run Scyan algorithm ... ")
