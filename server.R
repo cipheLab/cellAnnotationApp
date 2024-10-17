@@ -83,10 +83,10 @@ server <- function(input, output, session) {
 
     listObject$flow.frames <- c(listObject$flow.frames, new.flow.frames)
 
-    # names of flow.frames
+    # Name of flow.frames
     names(listObject$flow.frames) <- files$name
 
-    # Print the fcs names
+    # Print the FCS names
     output$notifLoading <- renderText(paste0(names(unlist(listObject$flow.frames))))
 
     data <- as.data.frame(listObject$flow.frames[[1]]@exprs)
@@ -144,7 +144,7 @@ server <- function(input, output, session) {
     }
   })
 
-  # Extract markers for XGBoost
+ 
 
   observe({
     # If fcs file is loaded
@@ -217,7 +217,7 @@ server <- function(input, output, session) {
 
       colnames(predictions) <- "popIDXGBoost"
 
-      # Ajouter la nouvelle colonne dans le fichier fcs
+      # Add new column in FCS file
       x <- enrich.FCS.CIPHE(x, predictions)
 
       return(x)
