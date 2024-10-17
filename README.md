@@ -41,7 +41,7 @@ cd path/To/Repertory/cellAnnotationApp
   ```
 Build docker image :
   ```sh
-docker build -t cellAnnotationApp
+docker build -t cell_annotation_app
   ```
 Launch the docker image :
   ```sh
