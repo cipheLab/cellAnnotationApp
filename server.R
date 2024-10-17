@@ -25,7 +25,7 @@ library(zip)
 
 source_python("scyanFunctions.py")
 s <- import("scyan")
-source("functionsShinyApp-copy.R")
+source("functionsShinyApp.R")
 source("functionsScaffold.R")
 
 
