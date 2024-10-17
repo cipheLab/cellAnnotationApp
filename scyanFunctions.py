@@ -1,22 +1,21 @@
 import scyan 
-
 import pandas as pd
 import numpy as np
 
 
+
 def readKnowledgeTable(pathKnowledgeTable):
-    # Récupérer l'extension du fichier (par exemple, .csv, .xlsx, .xls)
+    # Find file extension .csv, .xlsx, .xls)
     file_extension = pathKnowledgeTable.split('.')[-1]
 
-    # Utilisation de switch pour lire le fichier selon le format
     if file_extension == 'csv':
-        # Lire le fichier CSV
+        
         table = pd.read_csv(pathKnowledgeTable, index_col=[0])
     elif file_extension in ['xlsx', 'xls']:
-        # Lire le fichier Excel
+     
         table = pd.read_excel(pathKnowledgeTable, index_col=[0])
 
-    # Définir la colonne "Populations" comme index, si elle existe
+    # Define Population as index 
     if "Populations" in table.columns:
         table.set_index("Populations", inplace=True)
     
