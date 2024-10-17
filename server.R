@@ -208,8 +208,7 @@ server <- function(input, output, session) {
 
       # Transform to matrix
       predictions <- as.matrix(predictions)
-
-      # Decaler les pr??dictions pour que ca matche avec les annotations scaffold
+      
       predictions <- ifelse(predictions >= 10, predictions + 1, predictions)
 
       # Add 1 to all predictions
@@ -261,11 +260,8 @@ server <- function(input, output, session) {
         x <- x %>%
           mutate(Percentage = round(Freq / sum(Freq) * 100, 3))
 
-
         # dataframe that contains xgboost results
         results <- data.frame(popID = x$Var1, label = x$label, count = x$Freq, Percentage = x$Percentage)
-
-
 
         return(results)
       })
@@ -313,10 +309,6 @@ server <- function(input, output, session) {
     }
   })
 
-
-
-
-
   ## Clustering CLARA
 
   observeEvent(input$clustering, {
@@ -329,13 +321,11 @@ server <- function(input, output, session) {
 
       # Apply clustering on all files
 
-      # Apply clusterisation
-
       listObject$flow.frames.transformed <- claraClustering(listObject$flow.frames.transformed, input$clustering_parameter)
     }
   })
 
-  # Display markers present in FCS file
+  # Display marker presents in FCS file
 
   observe({
     if (!is.null(listObject$flow.frames)) {
@@ -364,8 +354,8 @@ server <- function(input, output, session) {
       # Apply on all transformed files
 
       listObject$flow.frames.tab <- lapply(listObject$flow.frames.transformed, function(x) {
+        
         # Build csv tab
-
         return(builddCSVTab(x, listObject$clusteringColumn))
       })
 
