@@ -298,7 +298,7 @@ ui <- dashboardPage(
            solidHeader = TRUE,
            collapsible = TRUE,
           
-          # Clara clustering
+          # CLARA clustering
            box(width = 12 , status="info", title = 'STEP 1 - Clustering',
                
                # Button to choose markers used for clustering
@@ -358,10 +358,12 @@ ui <- dashboardPage(
 
       )
     ),
+
+  # RESULTS
     
   conditionalPanel(
     condition = "input.tab == 'Stats'",
-    titlePanel(""),  # Si le titre n'est pas nécessaire, vous pouvez le supprimer.
+    titlePanel(""),  
     
     fluidRow(
       div(class = "right-aligned",
@@ -398,6 +400,8 @@ ui <- dashboardPage(
   )
   
   ,
+  # VIZUALISATION
+    
   conditionalPanel(
     
     condition = "input.tab == 'Visualizations'",
