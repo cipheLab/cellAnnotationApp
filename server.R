@@ -118,7 +118,6 @@ server <- function(input, output, session) {
   observeEvent(input$submit, {
     
     # If fcs file is loaded
-
     if (!is.null(listObject$flow.frames)) {
       
       # Apply compensation or not
@@ -140,6 +139,7 @@ server <- function(input, output, session) {
   observe({
     # If fcs file is loaded
     if (!is.null(listObject$flow.frames)) {
+      
       # Extract markers from fcs file
       listObject$marker_untrans <- extract_markers(listObject$flow.frames[[1]], NULL)
 
@@ -173,7 +173,7 @@ server <- function(input, output, session) {
     }
   })
 
-
+  # XGBoost annotation
   observeEvent(input$annotate_data_with_XGboost, {
     progress <- Progress$new()
 
@@ -188,7 +188,7 @@ server <- function(input, output, session) {
     
 
 
-    # Predict annotation with XGBoost on all fcs file
+    # Predict annotation with XGBoost on all FCS files
     listObject$flow.frames.enriched <- lapply(listObject$flow.frames.enriched, function(x) {
       i <<- i + 1
       data <- preparMatrix(x, input$markersUsedForPredictions, input$markersUsedForModelTraining, NULL)
@@ -212,6 +212,7 @@ server <- function(input, output, session) {
       # Add 1 to all predictions
       predictions <- predictions + 1
 
+      # Name of predictions
       colnames(predictions) <- "popIDXGBoost"
 
       # Add new column in FCS file
@@ -322,7 +323,7 @@ server <- function(input, output, session) {
     }
   })
 
-  # Display marker presents in FCS file
+  # Display markers presents in FCS file
 
   observe({
     if (!is.null(listObject$flow.frames)) {
@@ -356,7 +357,7 @@ server <- function(input, output, session) {
       gated.flow.frames <- NULL
 
       # List of landmark used by scaffold
-      listLandmark <- list.files("/home/maelleWorkspace/GatedCleanLandmarkFSCTransformed", full.names = TRUE) 
+      listLandmark <- list.files("GatedCleanLandmarkFSCTransformed", full.names = TRUE) 
 
       # Name of pop that you want to annotate
       namesLandmarks <- basename(listLandmark)
