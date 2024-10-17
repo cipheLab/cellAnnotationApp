@@ -1,3 +1,4 @@
+# Load libraries
 library(shiny)
 library(xgboost)
 library(plyr)
@@ -92,16 +93,13 @@ server <- function(input, output, session) {
 
     results <- head(data)
 
-    # data<-as.data.frame(fcs@exprs)
-    #
-    # data %>% summarise_if(is.numeric, mean, na.rm = TRUE)
-    #
-    # output$ViewFCS <- renderDT(results, rownames=FALSE)
+  
   })
 
 
 
   observeEvent(input$clear_all_transform, {
+    
     # Markers to transform
     updateSelectInput(session, "marker_untrans", selected = c("FSC-A", "SSC-A", "UV-BUV395-A", "UV-BUV661-A", "UV-BUV737-A", "V-BV421-A", "V-V500-A", "V-BV650-A", "V-BV711-A", "B-FITC-A", "B-PE-Cy5-5-A", "G-PE-Cy5-A", "G-PE-Cy7-A", "R-APC-A", "R-Alexa700-A", "R APC-Cy7-A"), choices = listObject$marker_untrans)
 
@@ -113,6 +111,7 @@ server <- function(input, output, session) {
   # Launch Preprocessing
 
   observeEvent(input$submit, {
+    
     # If fcs file is loaded
 
     if (!is.null(listObject$flow.frames)) {
@@ -132,7 +131,7 @@ server <- function(input, output, session) {
   })
 
 
-  # Extraire les marqueurs
+  # Extract markers
 
   observe({
     # If fcs file is loaded
@@ -145,7 +144,7 @@ server <- function(input, output, session) {
     }
   })
 
-  # Extraire les marqueurs pour XGBoost
+  # Extract markers for XGBoost
 
   observe({
     # If fcs file is loaded
@@ -225,7 +224,7 @@ server <- function(input, output, session) {
     })
 
 
-    ## Afficher les résultats d'enrichissement
+    ## Display enrichment
 
     # After cell annotation :
     if (!is.null(listObject$flow.frames.enriched)) {
@@ -281,7 +280,7 @@ server <- function(input, output, session) {
   })
 
 
-  # Faire une liste des mod??les XGBoost disponibles
+  # Make list of XGBoost model
 
   observe({
     # List of model already saved in app
@@ -328,8 +327,6 @@ server <- function(input, output, session) {
         listObject$flow.frames.transformed <- listObject$flow.frames
       }
 
-
-
       # Apply clustering on all files
 
       # Apply clusterisation
@@ -338,11 +335,10 @@ server <- function(input, output, session) {
     }
   })
 
-  # Afficher les marqueurs présents dans le fichier FCS
+  # Display markers present in FCS file
 
   observe({
     if (!is.null(listObject$flow.frames)) {
-      # Extract markers presents in fcs file
 
       listObject$marker_untrans <- extract_markers(listObject$flow.frames[[1]], NULL)
 
@@ -427,7 +423,7 @@ server <- function(input, output, session) {
       # Assign names of ungated files to the list of files
       names(clusteredFiles) <- names(listObject$flow.frames)
 
-      # Assign na
+      # Assign NA
       map.clusteredFiles.names <- names(listObject$flow.frames)
 
       names(gated.flow.frames) <- filesname
@@ -492,11 +488,6 @@ server <- function(input, output, session) {
       print("scaffold")
       print(scaffold)
 
-      print("list1")
-      print(list1)
-
-      print("list2")
-      print(list2)
       res <- scaffold_events_export(list1, list2, listObject$flow.frames.enriched, scaffold, "CLARABIS")
 
 
@@ -550,7 +541,6 @@ server <- function(input, output, session) {
 
   # SCYAN annotation (python module)
   
-  
   observeEvent(input$knowledgeTable, {
     # Read the knowledge table
     
@@ -595,6 +585,7 @@ server <- function(input, output, session) {
 #     })
 
     if (is.null(listObject$flow.frames.transformed)) {
+      
       listObject$flow.frames.transformed <- listObject$flow.frames
     }
 
@@ -667,6 +658,7 @@ server <- function(input, output, session) {
     
 
     if (!is.null(listObject$resultsXGBoost)) {
+      
       # Convert result into datatable format
       resultsXGBoost <- DT::datatable(listObject$resultsXGBoost[[input$enrichedFile]], rownames = FALSE)
       output$resultsXGBoost <- renderDT(resultsXGBoost)
@@ -688,19 +680,14 @@ server <- function(input, output, session) {
       paste0("All_Statistics_", Sys.Date(), ".zip")
     },
     content = function(file) {
-      # Créer un répertoire temporaire pour stocker les fichiers Excel
+      # Create temporary repertory
       temp_dir <- tempdir()
-      
-      # Une liste pour stocker les chemins des fichiers temporaires créés
       temp_files <- c()
       
-      # Parcourir chaque frame dans listObject$flow.frames
+
       for (flow_frame_name in names(unlist(listObject$flow.frames))) {
-        
-        # Création du workbook pour chaque fichier
+   
         wb <- createWorkbook()
-        
-        # Ajout des feuilles dans le workbook
         if (!is.null(listObject$resultsScyan)) {
           addWorksheet(wb, "Scyan")
           Scyan <- listObject$resultsScyan[[flow_frame_name]]
@@ -719,15 +706,14 @@ server <- function(input, output, session) {
           writeData(wb, sheet = "Scaffold", Scaffold)
         }
         
-        # Sauvegarder chaque workbook dans un fichier temporaire
+        
         temp_file <- file.path(temp_dir, paste0(flow_frame_name, ".xlsx"))
         saveWorkbook(wb, temp_file, overwrite = TRUE)
         
-        # Ajouter le chemin du fichier temporaire à la liste
+
         temp_files <- c(temp_files, temp_file)
       }
       
-      # Créer un fichier ZIP contenant tous les fichiers Excel générés
       zip::zipr(zipfile = file, files = temp_files)
     }
   )
