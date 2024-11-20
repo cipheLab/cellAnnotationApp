@@ -51,26 +51,26 @@ docker run -p 3838:3838 cellAnnotationApp
    ## Usage
 
 ### Upload and View Data
-1. Navigate to the **Upload FCS** tab.
-2. Click on the "Upload..." button to select and upload one or multiple FCS files.
-3. View the contents of the uploaded files in the table.
+ 
+ Click on the "Upload..." button to select and upload one or multiple FCS files.
+
 
 ### Preprocessing
-1. Go to the **Preprocessing** tab.
-2. Select the markers to transform and the type of transformation (logicle or arcsinh).
-3. Click "Apply" to perform the preprocessing.
+Go to the **Preprocessing** tab.
+Select the markers to transform and the type of transformation (logicle or arcsinh).
+Click "Apply" to perform the preprocessing.
 
 ### Annotation
 
 #### XGBoost
-1. Navigate to the **XGBoost** tab.
-2. Load or choose an XGBoost model.
-3. Select markers used for prediction.
-4. Click "Annotate Selected Files" to perform the annotation.
+Navigate to the **XGBoost** tab.
+Load or choose an XGBoost model.
+Select markers used for prediction.
+Click "Annotate Selected Files" to perform the annotation.
 
 #### Scyan
-1. Go to the **Scyan** tab.
-2. Load or build a Scyan knowledge table.
+Go to the **Scyan** tab.
+Load or build a Scyan knowledge table.
 3. Select markers for prediction.
 4. Click "Run Scyan Annotation" to perform the annotation.
 
