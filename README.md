@@ -31,23 +31,21 @@ OR CLONE MANUALLY :
 
 ![2024-10-07 11_13_46-cipheLab_cellAnnotationApp - École – Microsoft​ Edge](https://github.com/user-attachments/assets/81f7db5b-8b8a-4cba-b4da-35aa9625812f)
 
-4. Launch cellAnnotationApp:
-Unzip cellAnnotationApp repertory
-Open a terminal and run the following command :
+3. 
 
 Go to the repertory (replace 'path/To/Repertory' by the path to cellAnnotationApp) : 
   ```sh
 cd path/To/Repertory/cellAnnotationApp
   ```
-Build docker image :
+4. Build docker image :
   ```sh
 docker build -t cell_annotation_app
   ```
-Launch the docker image :
+5. Launch the docker image :
   ```sh
 docker run -p 3838:3838 cellAnnotationApp
   ```
-3. Open an internet browser and type :  "http://127.0.0.1:3838". CellAnnotationApp will appear in the bowser.
+6. Open an internet browser and type :  "http://127.0.0.1:3838". CellAnnotationApp will appear in the bowser.
    
 
    ## Usage
