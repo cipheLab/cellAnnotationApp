@@ -13,7 +13,7 @@ The Cell Annotation App is a Shiny web application designed to facilitate the an
 - **Results**: View and analyze the annotation results.
   - ***Stats***
   - ***Visualizations***
-**Download**: Export the annotated FCS files and results.
+- **Download**: Export the annotated FCS files and results.
 
 ## Installation
 cellAnnotationApp can be installed and run using Docker. You can install it in your own laptop.
