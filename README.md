@@ -3,7 +3,7 @@
 ## Description
 The Cell Annotation App is a Shiny web application designed to facilitate the annotation of cytometry data. This tool allows users to upload FCS files, apply necessary preprocessing transformations, and use various algorithms for cell annotation. The results can be visualized and downloaded for further analysis.
 
-## Sections
+## App sections
 - **Upload**: Load one or more FCS files.
 - **Preprocessing**: Apply compensation and transformation to the data.
 - **Annotation Algorithms**: 
