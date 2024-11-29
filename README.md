@@ -20,26 +20,26 @@ cellAnnotationApp can be installed and run using Docker. You can install it in y
 
 Follow the procedure :
 
-1. Install docker h[ttps://docs.docker.com/desktop/install/](https://docs.docker.com/engine/install/)
-2. Clone the cellAnnotationApp repertory
+**1.** Install docker h[ttps://docs.docker.com/desktop/install/](https://docs.docker.com/engine/install/)
+**2.** Clone the cellAnnotationApp repertory
    
   ```sh
 git clone https://github.com/cipheLab/cellAnnotationApp.git
   ```
 
-3. Go to the repertory (replace 'path/To/Repertory' by the path to cellAnnotationApp) : 
+**3.** Go to the repertory (replace 'path/To/Repertory' by the path to cellAnnotationApp) : 
   ```sh
 cd path/To/Repertory/cellAnnotationApp
   ```
-4. Build docker image :
+**4.** Build docker image :
   ```sh
 docker build -t cell_annotation_app
   ```
-5. Launch the docker image :
+**5.** Launch the docker image :
   ```sh
 docker run -p 3838:3838 cellAnnotationApp
   ```
-6. Open an internet browser and type :  "http://127.0.0.1:3838". CellAnnotationApp will appear in the bowser.
+**6.** Open an internet browser and type :  "http://127.0.0.1:3838". CellAnnotationApp will appear in the bowser.
    
 
    ## Usage
