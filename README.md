@@ -1,4 +1,4 @@
-# Cell Annotation App
+# cellAnnotationApp
 
 ## Description
 The Cell Annotation App is a Shiny web application designed to facilitate the annotation of cytometry data. This tool allows users to upload FCS files, apply necessary preprocessing transformations, and use various algorithms for cell annotation. The results can be visualized and downloaded for further analysis.
@@ -28,10 +28,6 @@ CLONE WITH GIT :
   ```sh
 git clone https://github.com/cipheLab/cellAnnotationApp.git
   ```
-
-OR CLONE MANUALLY :
-
-![2024-10-07 11_13_46-cipheLab_cellAnnotationApp - École – Microsoft​ Edge](https://github.com/user-attachments/assets/81f7db5b-8b8a-4cba-b4da-35aa9625812f)
 
 3. Go to the repertory (replace 'path/To/Repertory' by the path to cellAnnotationApp) : 
   ```sh
@@ -82,9 +78,6 @@ Load or build a Scyan knowledge table.
 ### Results Visualization and Download
 1. Go to the **Results** tab to view annotation statistics and visualizations.
 2. Click "Download ALL CSV results" to export the results.
-
-## System Requirements
-- **OS**: Linux, Windows, or macOS
 
 ## Contributing
 Contributions are welcome! Please feel free to submit a Pull Request or open an issue.
