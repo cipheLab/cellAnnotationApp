@@ -10,7 +10,7 @@ The Cell Annotation App is a Shiny web application designed to facilitate the an
   - ***XGBoost***: Use a machine learning model for cell annotation.
   - ***Scyan***: Apply the Scyan algorithm with a knowledge table for annotation. 
   - **Scaffold**: Perform clustering and build Scaffold maps for annotation.
--**Results**: View and analyze the annotation results.
+- **Results**: View and analyze the annotation results.
   - ***Stats***
   - ***Visualizations***
 **Download**: Export the annotated FCS files and results.
