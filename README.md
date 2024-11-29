@@ -4,14 +4,16 @@
 The Cell Annotation App is a Shiny web application designed to facilitate the annotation of cytometry data. This tool allows users to upload FCS files, apply necessary preprocessing transformations, and use various algorithms for cell annotation. The results can be visualized and downloaded for further analysis.
 
 ## Features
-- **Upload and View Data**: Load one or more FCS files.
-- **Preprocessing**: Apply compensation and transformation to the data.
-- **Annotation Algorithms**: 
+**Upload**: Load one or more FCS files.
+**Preprocessing**: Apply compensation and transformation to the data.
+**Annotation Algorithms**: 
   - **XGBoost**: Use a machine learning model for cell annotation.
-  - **Scyan**: Apply the Scyan algorithm with a knowledge table for annotation.
+  - **Scyan**: Apply the Scyan algorithm with a knowledge table for annotation. 
   - **Scaffold**: Perform clustering and build Scaffold maps for annotation.
-- **Results Visualization**: View and analyze the annotation results.
-- **Download**: Export the annotated FCS files and results.
+**Results**: View and analyze the annotation results.
+  - **Stats**
+  - **Visualizations**
+**Download**: Export the annotated FCS files and results.
 
 ## Installation
 cellAnnotationApp can be installed and run using Docker. You can install it in your own laptop.
@@ -31,9 +33,7 @@ OR CLONE MANUALLY :
 
 ![2024-10-07 11_13_46-cipheLab_cellAnnotationApp - École – Microsoft​ Edge](https://github.com/user-attachments/assets/81f7db5b-8b8a-4cba-b4da-35aa9625812f)
 
-3. 
-
-Go to the repertory (replace 'path/To/Repertory' by the path to cellAnnotationApp) : 
+3. Go to the repertory (replace 'path/To/Repertory' by the path to cellAnnotationApp) : 
   ```sh
 cd path/To/Repertory/cellAnnotationApp
   ```
@@ -53,7 +53,6 @@ docker run -p 3838:3838 cellAnnotationApp
 ### Upload and View Data
  
  Click on the "Upload..." button to select and upload one or multiple FCS files.
-
 
 ### Preprocessing
 Go to the **Preprocessing** tab.
