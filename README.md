@@ -21,10 +21,8 @@ cellAnnotationApp can be installed and run using Docker. You can install it in y
 Follow the procedure :
 
 1. Install docker h[ttps://docs.docker.com/desktop/install/](https://docs.docker.com/engine/install/)
-2. Clone the cellAnnotationApp repertory with git **or manually**.
+2. Clone the cellAnnotationApp repertory
    
-CLONE WITH GIT : 
-
   ```sh
 git clone https://github.com/cipheLab/cellAnnotationApp.git
   ```
