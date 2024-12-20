@@ -79,6 +79,8 @@ Load or build a Scyan knowledge table.
 1. Go to the **Results** tab to view annotation statistics and visualizations.
 2. Click "Download ALL CSV results" to export the results.
 
+Download your FCS file(s) with a new column that contain the annotation and also the dimension reduction.
+
 ## Contributing
 Contributions are welcome! Please feel free to submit a Pull Request or open an issue.
 
