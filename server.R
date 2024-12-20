@@ -1,784 +1,525 @@
-# Load libraries
 library(shiny)
-library(xgboost)
-library(plyr)
-library(dplyr)
-library(tidyr)
-library(flowCore)
-#library(FlowCIPHE)
 library(shinydashboard)
 library(shinyjs)
 library(shinybusy)
 library(bslib)
-library(shinycssloaders)
-library(gtools)
+library(xgboost)
+library(dplyr)
+library(tidyr)
 library(flowCore)
-library(igraph)
-library(Rcpp)
-install.packages("reticulate")
-library(reticulate)
-library(openxlsx)
-library(parallel)
-library(stringr)
-library(zip)
-
-
-# Import functions
-source_python("scyanFunctions.py")
-source("functionsShinyApp.R")
-source("functionsScaffold.R")
-
-# Scyan module
-s <- import("scyan")
+library(DT)
 
 source("functionsShinyApp.R")
-source("functionsScaffold.R")
 
-# Increase size limit of files for uploading
-options(expressions = 5e5, shiny.maxRequestSize = 100 * 1024^3)
-
-server <- function(input, output, session) {
-  # Initialize objects
-  listObject <- reactiveValues(
-    listFCS = NULL,
-    flow.frames = NULL,
-    flow.frames.transformed = NULL,
-    marker_untrans = NULL,
-    markerXGBoost = NULL,
-    model = NULL,
-    models = NULL,
-    flow.frames.enriched = NULL,
-    flow.frames.tab = NULL,
-    listLandmark = NULL,
-    knowledgeTable = NULL,
-    table=NULL,
-    Map = NULL,
-    resultsScyan = NULL,
-    resultsScaffold = NULL,
-    resultsXGboost = NULL,
-    clusteringColumn = NULL
-  )
-
-  # Upload files
-
-  observeEvent(input$fcsFile, {
-    progress <- Progress$new()
+options(expressions = 5e5, shiny.maxRequestSize = 100 * 1024 ^ 3)
 
 
-    files <- input$fcsFile
-
-    newfilesnames <- files$datapath
-
-
-    filesname <- c(names(listObject$flow.frames), as.vector(newfilesnames))
-
-    listObject$listFCS <- newfilesnames
-
-    # Load and read fcs file one by one
-
-    i <- 0
-
-    new.flow.frames <- lapply(as.vector(listObject$listFCS), function(x) {
-      
-      i <<- i + 1
-
-      progress$set(message = paste0("Reading file ... ", i, "/", length(listObject$listFCS), "."), value = i / length(as.vector(listObject$listFCS)))
-
-      return(read.FCS(x, emptyValue = FALSE))
-    })
-
-    listObject$flow.frames <- c(listObject$flow.frames, new.flow.frames)
-
-    # Name of flow.frames
-    names(listObject$flow.frames) <- files$name
-
-    # Print the FCS names
-    output$notifLoading <- renderText(paste0(names(unlist(listObject$flow.frames))))
-
-    data <- as.data.frame(listObject$flow.frames[[1]]@exprs)
-
-    results <- head(data)
-
+ui <- dashboardPage(
   
-  })
-
-
-
-  observeEvent(input$clear_all_transform, {
-    
-    # Markers to transform
-    updateSelectInput(session, "marker_untrans", selected = c("FSC-A", "SSC-A", "UV-BUV395-A", "UV-BUV661-A", "UV-BUV737-A", "V-BV421-A", "V-V500-A", "V-BV650-A", "V-BV711-A", "B-FITC-A", "B-PE-Cy5-5-A", "G-PE-Cy5-A", "G-PE-Cy7-A", "R-APC-A", "R-Alexa700-A", "R APC-Cy7-A"), choices = listObject$marker_untrans)
-
-    shinyjs::show("markers_analyse")
-  })
-
-
-
-  # Launch Preprocessing
-  observeEvent(input$submit, {
-    
-    # If fcs file is loaded
-    if (!is.null(listObject$flow.frames)) {
+  skin = "blue",
+  dashboardHeader(title = 'Cell Annotation App'),
+  dashboardSidebar(
+    sidebarMenu(
+      id = "tab",
+      menuItem(" Infos", tabName = "infos", icon = icon("info")),
+      menuItem(" Upload FCS", tabName = "upload", icon = icon("upload")),
+      menuItem(" Preprocessing", tabName = "preprocessing", icon = icon("adjust")),
+      menuItem("Algorithms", tabName = "annotation_algorithms", icon = icon("pencil"),
+               menuSubItem("XGboost", tabName = "XGboost"),
+               menuSubItem("Scyan", tabName = "Scyan"),
+               menuSubItem("Scaffold", tabName = "Scaffold")),
+      menuItem("Results", tabName = "annotationResults", icon = icon("area-chart"),
+               menuSubItem("Stats", tabName = "Stats"),
+               menuSubItem("Visualizations", tabName = "Visualizations")
+               
+               ),
       
-      # Apply compensation or not
-      if (input$compensation) {
-        compens <- TRUE
-      } else {
-        compens <- FALSE
-      }
-
-      # Apply preprocessing
-      listObject$flow.frames.transformed <- pree_process_fcs(listObject$flow.frames, input$trans_args, input$transfo, compens, input$marker_untrans)
-
-      output$message <- renderText("Preprocessing applied successfully!")
-    }
-  })
-
-
-  # Extract markers
-  observe({
-    # If fcs file is loaded
-    if (!is.null(listObject$flow.frames)) {
-      
-      # Extract markers from fcs file
-      listObject$marker_untrans <- extract_markers(listObject$flow.frames[[1]], NULL)
-
-      # List of markers to transform
-      updateSelectInput(session, "marker_untrans", choices = listObject$marker_untrans)
-    }
-  })
-
- 
-
-  observe({
-    # If fcs file is loaded
-    if (!is.null(listObject$flow.frames)) {
-      # Load model trained on DYADEM project
-      listObject$model <- readRDS("model_xgboost_landmark_internship_dyadem_project.rds")
-
-      # Extract markers in the fcs file
-      listObject$markersXGBoost <- extract_markers(listObject$flow.frames[[1]], NULL)
-
-      # List of markers that match with model features
-      updateSelectInput(session, "markersUsedForPredictions", choices = listObject$markersXGBoost)
-
-      if (!is.null(listObject$model)) {
-        # List of markers used by the model for training
-        updateSelectInput(session, "markersUsedForModelTraining", choices = listObject$model$feature_names, selected = listObject$model$feature_names)
-      }
-
-      # List of markers that match with model features
-      updateSelectInput(session, "markersUsedForPredictionsScyan", choices = listObject$markersXGBoost)
-
-    }
-  })
-
-  # XGBoost annotation
-  observeEvent(input$annotate_data_with_XGboost, {
-    progress <- Progress$new()
-
-    i <- 0
-  
-    if (is.null(listObject$flow.frames.transformed)) {
-        listObject$flow.frames.transformed <- listObject$flow.frames
-    }
-    if (is.null(listObject$flow.frames.enriched)) {
-        listObject$flow.frames.enriched <- listObject$flow.frames.transformed
-      }
+      actionButton("downloadFCS", "Download enriched FCS", icon = icon("download"))
+    )
+  ),
+  dashboardBody(
+    fluidRow(
+    infoBoxOutput("progressBox1"),
+    infoBoxOutput("progressBox2")
+    ),
+      tags$link(rel = "stylesheet", type = "text/css", href = "style.css?v=1")
+  ,
     
-
-
-    # Predict annotation with XGBoost on all FCS files
-    listObject$flow.frames.enriched <- lapply(listObject$flow.frames.enriched, function(x) {
-      i <<- i + 1
-      data <- preparMatrix(x, input$markersUsedForPredictions, input$markersUsedForModelTraining, NULL)
-
-      # Scaling
-      data <- scale(data)
-
-      # Transform to XGBoost object
-      data <- xgb.DMatrix(as.matrix(data))
-
-      progress$set(message = paste0("Predict XGBoost annotations ... ", i, "/", length(listObject$flow.frames.transformed), "."), value = i / length(as.vector(listObject$flow.frames.transformed)))
-
-      #  Prediction (annotation)
-      predictions <- predict(listObject$model, data)
-
-      # Transform to matrix
-      predictions <- as.matrix(predictions)
-      
-      predictions <- ifelse(predictions >= 10, predictions + 1, predictions)
-
-      # Add 1 to all predictions
-      predictions <- predictions + 1
-
-      # Name of predictions
-      colnames(predictions) <- "popIDXGBoost"
-
-      # Add new column in FCS file
-      x <- enrich.FCS.CIPHE(x, predictions)
-
-      return(x)
-    })
-
-
-    ## Display enrichment
-
-    # After cell annotation :
-    if (!is.null(listObject$flow.frames.enriched)) {
-      # Initialize the result list
-
-
-      # Show results for all files
-      listObject$resultsXGBoost <- lapply(listObject$flow.frames.enriched, function(x) {
-        # Convert to a dataframe
-        x <- as.data.frame(x@exprs)
-
-        # Add informations of all pop
-        x <- table(x$popIDXGBoost)
-
-        # Convert to data frame
-        x <- as.data.frame(x)
-
-        # Call the function to match label with popID
-        popLabel <- matchPopIDD()
-
-        labels <- c()
-
-        for (i in x$Var1) {
-          for (j in 1:29) {
-            if (i == j) {
-              labels <- c(labels, popLabel[[j]])
-            }
-          }
+    add_busy_spinner(spin = "atom", onstart = TRUE,position="full-page" ,timeout = 50),
+      tags$style(HTML("
+        .content-wrapper, .main-footer {
+          margin-bottom: 0 !important;
         }
-
-        # Add new label column
-        x$label <- labels
-
-        # Add percentage column
-        x <- x %>%
-          mutate(Percentage = round(Freq / sum(Freq) * 100, 3))
-
-        # dataframe that contains xgboost results
-        results <- data.frame(popID = x$Var1, label = x$label, count = x$Freq, Percentage = x$Percentage)
-
-        return(results)
-      })
-
-      # Add files names to each result
-      names(listObject$resultsXGBoost) <- names(unlist(listObject$flow.frames))
-
-
-
-      updateSelectInput(session, "enrichedFile", choices = names(unlist(listObject$flow.frames)))
-    }
-  })
-
-
-  # Make list of XGBoost model
-  observe({
-    # Import DYADEM model project
-    models <- readRDS("model_xgboost_landmark_internship_dyadem_project.rds")
-
-
-    models <- basename("model_xgboost_landmark_internship_dyadem_project.rds")
-
-    # List of models already present
-    listObject$models <- models
-
-    # Create a list of models
-    updateRadioButtons(session, "oldModelXGBoost", choices = listObject$models, selected = NULL)
-
-    if (!is.null(listObject$flow.frames)) {
-      listObject$model <- readRDS("model_xgboost_landmark_internship_dyadem_project.rds")
-
-      # Extract marker in the fcs file
-      listObject$markersXGBoost <- extract_markers(listObject$flow.frames[[1]], listObject$model)
-
-      # Choose markers used for XGBoost Annotation
-      updateSelectInput(session, "exclude_markers_XGBoost", choices = listObject$markersXGBoost, selected = c("FSC-A", "SSC-A", "UV-BUV395-A", "UV-BUV661-A", "UV-BUV737-A", "V-BV421-A", "V-V500-A", "V-BV650-A", "V-BV711-A", "B-FITC-A", "B-PE-Cy5-5-A", "G-PE-Cy5-A", "G-PE-Cy7-A", "R-APC-A", "R-Alexa700-A", "R APC-Cy7-A"))
-
-
-      # Files to annotate
-      files <- c("All", names(unlist(listObject$flow.frames)))
-
-      # Update files to annotate
-      updateRadioButtons(session, "FilesToAnnotate", choices = files, selected = "All")
-    }
-  })
-
-  ## Clustering CLARA
-
-  observeEvent(input$clustering, {
-    # If there are file uploaded
-    if (!is.null(listObject$flow.frames)) {
-      if (is.null(listObject$flow.frames.transformed)) {
-        # To avoid bug if no transformation is applied
-        listObject$flow.frames.transformed <- listObject$flow.frames
-      }
-
-      # Apply clustering on all files
-      listObject$flow.frames.transformed <- claraClustering(listObject$flow.frames.transformed, input$clustering_parameter)
-    }
-  })
-
-  # Display markers presents in FCS file
-
-  observe({
-    if (!is.null(listObject$flow.frames)) {
-
-      listObject$marker_untrans <- extract_markers(listObject$flow.frames[[1]], NULL)
-
-      # Modify selectInput with the markers presents in the fcs file
-      updateSelectInput(session, "marker_clustering", choices = listObject$marker_untrans, selected = c("FSC-A", "SSC-A", "UV-BUV395-A", "UV-BUV661-A", "UV-BUV737-A", "V-BV421-A", "V-V500-A", "V-BV650-A", "V-BV711-A", "B-FITC-A", "B-PE-Cy5-5-A", "G-PE-Cy5-A", "G-PE-Cy7-A", "R-APC-A", "R-Alexa700-A", "R APC-Cy7-A"))
-    }
-  })
-
-  # Scaffold Map
-  observeEvent(input$scaffoldMap, {
-    # For each fcs file build a csv tab
-    if (!is.null(listObject$flow.frames)) {
-      if (is.null(listObject$flow.frames.transformed)) {
-        listObject$flow.frames.transformed <- listObject$flow.frames
-      }
-
-      if (input$alreadyClustered == TRUE) {
-        listObject$clusteringColumn <- input$clusteringColumn
-      }
-      # Apply on all transformed files
-      listObject$flow.frames.tab <- lapply(listObject$flow.frames.transformed, function(x) {
-        
-        # Build csv tab
-        return(builddCSVTab(x, listObject$clusteringColumn))
-      })
-
-      # Initialize gated.flow.frames
-      gated.flow.frames <- NULL
-
-      # List of landmark used by scaffold
-      listLandmark <- list.files("GatedCleanLandmarkFSCTransformed", full.names = TRUE) 
-
-      # Name of pop that you want to annotate
-      namesLandmarks <- basename(listLandmark)
-
-      # List of files you want to annotate
-      listFCS <- as.character(listLandmark)[mixedorder(namesLandmarks)]
-
-      # Set landmarks names
-      temp.names <- namesLandmarks
-
-      # Add names for each landmark
-      filesname <- c(names(gated.flow.frames), as.vector(temp.names))
-
-      # Loop for all files
-      i <- 0
-
-      new.flow.frames <- lapply(as.vector(listFCS), function(x) {
-        i <<- i + 1
-
-        fcs <- read.FCS(x, emptyValue = FALSE)
-
-        if (dim(fcs)[1] == 1) {
-          fcs@exprs <- fcs@exprs[c(1, 1, 1), ]
+        .content {
+          height: calc(100vh - 50px);
+          overflow-y: auto;
         }
-
-        return(fcs)
-      })
-
-      # Landmarks
-      gated.flow.frames <- c(gated.flow.frames, new.flow.frames)
-
-      # Add names to each landmark
-      names(gated.flow.frames) <- filesname
-
-      # Set markers used for scaffold annotation
-      col.names <- input$marker_clustering
-
-      # Initialize ungated file
-      clusteredFiles <- NULL
-
-      # Contain output of builddCSVTab function
-      clusteredFiles <- c(listObject$flow.frames.tab)
-
-      # Assign names of ungated files to the list of files
-      names(clusteredFiles) <- names(listObject$flow.frames)
-
-      # Assign NA
-      map.clusteredFiles.names <- names(listObject$flow.frames)
-
-      names(gated.flow.frames) <- filesname
-
-      clustedFiles <- clusteredFiles
-
-
-      # To increase C stack limit
-      sourceCpp("forceatlas2.cpp")
-
-      # Run scaffold analysis
-      result <- runn_analysis_gated(gated.flow.frames, # Landmarks
-        clustedFiles, # Clustered files to annotate
-        outputDir = getwd(), # Output directory
-        map.clusteredFiles.names, # Clustered files names
-        FALSE, # Boolean
-        col.names, # Markers used for scaffold annotation
-        col.names, # Markers used for annotation
-        col.names.inter_cluster = NULL,
-        ew_influence = NULL,
-        inter_cluster.weight_factor = 0.7,
-        inter.cluster.connections = TRUE,
-        overlap_method = "repel"
-      )
-
-      # Show notification chen map is created
-      output$messageBuildScaffoldMap <- renderText("Scaffold map created successfully !")
-
-      # Assign scaffold map to the variable listObject$Map
-      listObject$Map <- result
-    }
-  })
-
-
-  # Run scaffold annotation
-  observeEvent(input$RunScaffoldAnnotation, {
-    # If scaffold Map is created
-    if (!is.null(listObject$Map)) {
-      if (is.null(listObject$flow.frames.enriched)) {
-        listObject$flow.frames.enriched <- listObject$flow.frames.transformed
-      }
-
-
-      # Assign scaffold Map to scaffold variable
-      scaffold <- listObject$Map
-
-
-      # Name of file ungated
-      list2 <- names(unlist(listObject$flow.frames))
-
-      list1 <- names(unlist(listObject$flow.frames))
-
-      # Initialize list that contains list of files ungated
-      listFiles <- NULL
-      print(listObject$flow.frames.enriched)
-      # List of files ungated
-
-      # Run scaffold annotation
-      print("listFiles")
-      print(listFiles)
-
-      print("scaffold")
-      print(scaffold)
-
-      res <- scaffold_events_export(list1, list2, listObject$flow.frames.enriched, scaffold, "CLARABIS")
-
-
-      listObject$flow.frames.enriched <- res
-
-      listObject$resultsScaffold <- lapply(listObject$flow.frames.enriched, function(x) {
-        # Convert new enriched fcs expression matrix to a dataframe
-        resultScaffold <- as.data.frame(x@exprs)
-
-        # Convert popScaffoldID results to a dataframe
-        resultScaffold <- as.data.frame(table(resultScaffold$popIDscaffoldBis))
-
-        # Add percentage column
-        resultScaffold <- resultScaffold %>%
-          mutate(Percentage = round(Freq / sum(Freq) * 100, 3))
-
-
-        # Call the function to match label with popID
-
-        popLabel <- matchPopIDD()
-
-        labels <- c()
-
-        for (i in resultScaffold$Var1) {
-          for (j in 1:29) {
-            if (i == j) {
-              labels <- c(labels, popLabel[[j]])
-            }
-          }
+        .wrapper {
+          height: 100vh;
+          overflow: hidden;
         }
-
-        # Add new label column
-        resultScaffold$label <- labels
-
-        # dataframe that contains xgboost results
-        results <- data.frame(popID = as.vector(resultScaffold$Var1), label = as.vector(resultScaffold$label), count = resultScaffold$Freq, Percentage = resultScaffold$Percentage)
-
-        # Sort by popID number
-        results <- results[order(as.numeric(results$popID)), ]
-
-        return(results)
-      })
-
-      names(listObject$resultsScaffold) <- names(unlist(listObject$flow.frames))
-
-      output$messageScaffoldAnnotation <- renderText("Scaffold annotation is done, see Visualization section !")
-
-      updateSelectInput(session, "enrichedFile", choices = names(unlist(listObject$flow.frames)))
-    }
-  })
-
-  # SCYAN annotation (python module)
-  
-  observeEvent(input$knowledgeTable, {
-    # Read the knowledge table
-    
-    listObject$table <- readKnowledgeTable(input$knowledgeTable$datapath)
+      ")),
    
-    # List of markers used by the model for training
-    updateSelectInput(session, "markersPresentInKnowledgeTable", choices = colnames(listObject$table), selected = colnames(listObject$table))
     
-  })
-  
-  observe({
-    if (input$oldKnowledgeTable) {
-    
-      listObject$table <- readKnowledgeTable("knowledgeTableScyanWithNI.csv")
+    conditionalPanel(
+      condition = "input.tab == 'infos'",
      
-      updateSelectInput(session, "markersPresentInKnowledgeTable", 
-                        choices = colnames(listObject$table), 
-                        selected = colnames(listObject$table))
-    } else {
-      updateSelectInput(session, "markersPresentInKnowledgeTable", 
-                        choices = NULL, 
-                        selected = NULL)  
-    }
-  })
-  observeEvent(input$annotate_data_with_Scyan, {
+      box(width = 10,title="About this tool",
+          status = "primary",
+          solidHeader = TRUE,
+          collapsible = TRUE,
+          id = 'Infos',
+        
+          HTML("
+          <p><strong>Steps :</strong></p>
+          <ol>
+            <li>Load your FCS file(s) that you want to annotate.</li>
+            <li>If your data is not compensated or transformed, proceed to the <em>Preprocessing</em> section.</li>
+            <li>Finally, choose the algorithm you wish to use for annotation and visualization of the annotation results.</li>
+            <li>Export the results.</li>
+          </ol>
+        ")
+      )
+    ),
     
-    progress <- Progress$new()
-
-    progress$set(message = "Run Scyan algorithm ... ")
-
-    # Knowledge table :
-
-    # If you want to load a knowledge table (csv format)
-
-# 
-#     # If you want to build a knowledge table
-# 
-#     observeEvent(input$buildKnowledgeTable, {
-# 
-# 
-# 
-# 
-#     })
-
-    if (is.null(listObject$flow.frames.transformed)) {
+    ### UPLOAD
+  
+    
+    conditionalPanel(
+    
       
-      listObject$flow.frames.transformed <- listObject$flow.frames
-    }
-
-
-
-
-    listObject$resultsScyan <- lapply(listObject$flow.frames.transformed, function(x) {
-      # Prepare matrix with the good marker
-      data <- preparMatrix(x, input$markersUsedForPredictionsScyan, input$markersPresentInKnowledgeTable, "scyan")
+      condition = "input.tab == 'upload'",
       
-      # FCS to annotate
+      tabItems(
+        
+        tabItem(
+          
+          tabName = "upload",
+          
+         # Choose files to annotate
+          box(width = 10,title="Choose one or multiple FCS files",
+              
+               status = "primary",
+              
+               solidHeader = TRUE,
+              
+               collapsible = TRUE,
+              
+              fileInput("fcsFile", NULL, multiple = TRUE, buttonLabel = "Upload...", accept = c('.fcs')),
+              
+              textOutput("notifLoading"),
+             
+          )
+        )
+      ),
+      
+    ),
+    
+    
+    #### PREPROCESS
+    
+    
+    conditionalPanel(
+      
+      condition = "input.tab == 'preprocessing'",
 
-      adata <- builAnnDataObject(data)
-
-      # Scale the data
+      uiOutput("fcsTransformed"),
+      
+      fluidPage(
+        
+        box(width = 10,HTML("<h4> If you want to apply compensation matrix and/or transform your dataset, else just ignore this part </h4>" )
  
-      s$preprocess$scale(adata)
+          ),
+        fluidRow(
+          column(
+            width = 12,
+            box(width = 10,
+              title = p("Preprocessing Settings",actionButton("HELP_PREPROCESSING","", icon("question-circle"), class="btn-xs")),
+              status = "primary",
+              solidHeader = TRUE,
+              collapsible = TRUE,
+              tabItems(
+                tabItem(
+                  tabName = "preprocessing",
+                  
+                  # Checkbox to apply compensation
+                  checkboxInput("compensation", "Apply spillover matrix", value = TRUE),
+                  uiOutput("compensation_message"),
+                  
+                  # Select markers to transform
+                  selectizeInput("marker_untrans", "Markers to transform", choices = c(""), multiple = TRUE, width = 700),
+                  
+                  fluidRow(
+                    column(
+                      2,
+                      tags$br(),
+                      actionButton("clear_all_transform", "Clear All", style = "border-width: 2px; border-color: black;")
+                    )
+                  ),
+                  
+                  # Select transformation
+                  fluidRow(
+                    column(
+                      2,
+                      tags$br(),
+                      selectInput("transfo", "Transformation", choices = list("logicle", "arcsinh"), selected = "logicle", width = 700)
+                    )
+                  ),
+                  
+                  # Set transformation argument
+                  numericInput("trans_args", "Argument", value = 500, width = 700),
+                  
+                  # Apply transformation
+                  actionButton(inputId = "submit", label = "Apply", style = " background-color: #B2DFEE;border-width: 2px; border-color: black;"),
+                  
+                  
+                  # Apply transformation
+                  actionButton(inputId = "unTransf", label = "Untransform all", style = "border-width: 2px; border-color: black;"),
+                  
+                  # Display messages
+                  textOutput("message"),
+                  # Select markers for visualization
+                  selectInput("marker_x", "X-axis Marker", choices = c(""), selected = NULL, width = 700),
+                  selectInput("marker_y", "Y-axis Marker", choices = c(""), selected = NULL, width = 700),
+                  
+                 
+                  
+                  # Display the plot
+                  plotOutput("plot_density", height = "500px", width = "500px")
+                )
+                
+              )
+            )
+          )
+        )
+      )
+      
+    )
+    
+    ,
+    
+    #### ANNOTATION XGBOOST
+    
+    conditionalPanel(
+      
+      condition = "input.tab == 'XGboost' ", 
+      
+      # Description of XGBoost
+      box(width = 12,HTML("<h4> XGBoost is a machine learning algorithm used in this case to annotate the cell types present in the loaded files, by being trained on the basis of marker expression. An XGBoost model has been trained with a particular set of markers (features) that must match the markers in the fcs file to be annotated. </h4>" )),
+     
+      box( width = 12,  title = "Annotation XGboost ",
+           
+            status = "primary",
+           
+            solidHeader = TRUE,
+           
+            collapsible = TRUE,
+           
+           # Load or build XGBoost model
+           box(width = 12 , status="info", title = 'STEP 1 - Load or choose XGBoost model and search commons markers',
+            
+            # Upload model
+            fileInput("modelXGBoost", "Upload model RDS file :", multiple = TRUE, buttonLabel = "Upload ...", accept = c('.rds','RDS')),
+            
+            # Choose if you want a model XGBoost already existing
+            radioButtons("oldModelXGBoost", "Or load existing model :", choices = list(""), selected=NULL),
+            
+            HTML("<h4> Choose markers for annotation </h4>"),
+           
+            layout_columns(
+              
+            # Markers used for prediction  
+            selectizeInput("markersUsedForPredictions", "Markers in fcs files", choices = c(""), multiple = TRUE),
+            
+            # Markers used for train the model
+            selectizeInput("markersUsedForModelTraining", "Markers in XGBoostmodel", choices = c(""), multiple = TRUE),
+     
+            ))
+      
+      ,
+         # XGBoost predictions
+          box(width = 12 , status="info", title = 'STEP 2 - Predictions',
+          textInput("nameEnrichXGBOOST", "Please, enter the column name that will contain the XGBOOST enrichment :", "XGBoostPopID"),
+           
+          # Launch XGBoost annotation
+          
+          actionButton("annotate_data_with_XGboost", "Annotate Selected Files",style = "background-color: #B2DFEE ; border-width: 2px")
+      )),
+      
+    ),
+    
+    #### ANNOTATION SCYAN
+    
+    conditionalPanel(
+      
+      condition = "input.tab == 'Scyan'",
+      
+      box(width = 10,HTML("<h4> Scyan algorithm need a knowledge table to annotate a ungated fcs file. The knowledge table contains well-known marker per expression. One row by cell type and one column by marker.
+               Each expression should be beetween -1 and 1. -1 for negative expression and 1 for positive exression. </h4>
+                   <h10> Quentin Blampey et al (2023) Briefings in Bioinformatics, Volume 24, Issue 5 <h10>" )
+          ),
+      
+      box(width = 10,status = "primary",
+          
+          title="Scyan Annotation :",
+          
+          solidHeader = TRUE,
+          
+          collapsible = TRUE,
+        
+        # Load or build Scyan knowledge table  
+        box(width = 10 , status="info",title=p('STEP 1 - Load or build scyan knowledge table' ,actionButton("HELP_KNOWLEDGE_TABLE","", icon("question-circle"), class="btn-xs")),
+            
+            
+            fileInput("knowledgeTable", "Upload knowledge Table (csv or excel format) :", multiple = FALSE, buttonLabel = "Upload...", accept = c('.xlx','.xlsx','.csv')),
+          
+                     checkboxInput("oldKnowledgeTable", "OR use knowledge table of DYADEM project", value=FALSE)),
+    
+           
+         
+            #fileInput("buildKnowledgeTable", "   OR build knowledge table :", multiple = TRUE, buttonLabel = "Upload...", accept = c('.csv','.txt')),
+        
+        box(width = 10 , status="info",title=p('STEP 2 - Choose markers for annotation',actionButton("HELP_SCYAN_MARKERS","", icon("question-circle"), class="btn-xs")), 
+            
+            layout_columns(
+              
+              # Markers used for prediction  
+              selectizeInput("markersUsedForPredictionsScyan", "Markers in fcs files", choices = c(""), multiple = TRUE),
+              
+              # Markers used for train the model
+              selectizeInput("markersPresentInKnowledgeTable", "Markers in knowledge table", choices = c(""), multiple = TRUE),
+     
+            )
+         
+          ),
+        
+        # Annotation part 
+        box(width = 12 , status="info",title=p('STEP 3 - Run algorithm',actionButton("HELP_SCYAN_RUN","", icon("question-circle"), class="btn-xs")),
+            layout_columns(
+            numericInput("std", "std", value = 0.25, width=700),
+            numericInput("lr", "lr", value = 0.0001, width=700),
+        ),
+            
+        textInput("nameEnrichScyan", "Please, enter the column name that will contain the SCYAN enrichment, default is:", "scyanPopID"),
+        # Button to run Scyan annotation data
+            actionButton("annotate_data_with_Scyan", "Run Scyan annotation",style = "background-color: #B2DFEE ; border-width: 2px")),
+          
+      )
+    ),
+    
+    #### ANNOTATION SCAFFOLD
+    
+    conditionalPanel(
+      condition = "input.tab == 'Scaffold'",
       
      
-      # Build the model
-      model <- runModel(adata, listObject$table)
-      
-      # Predict the model on adata
-      test(model)
-
-      # Obs for adata object
-      resultsScyan <- table(as.data.frame(adata$obs$scyan_pop))
-
-      # Convert to dataframe
-      resultsScyan <- as.data.frame(resultsScyan)
-
-
-      # Extract popID
-      popID <- as.vector(sapply(as.vector(resultsScyan$adata.obs.scyan_pop), function(x) {
-        return(strsplit(x, "_")[[1]][1])
-      }))
-
-      # Extract label
-      label <- as.vector(sapply(as.vector(resultsScyan$adata.obs.scyan_pop), function(x) {
-        return(strsplit(x, "_")[[1]][2])
-      }))
-
-      # Add Scyan popID
-      resultsScyan$popID <- popID
-
-      # Add labels
-      resultsScyan$label <- label
-
-      # Add percentage column
-      resultsScyan <- resultsScyan %>%
-        mutate(Percentage = round(Freq / sum(Freq) * 100, 3))
-
-
-      # dataframe that contains xgboost results
-      results <- data.frame(popID = as.vector(resultsScyan$popID), label = as.vector(resultsScyan$label), count = resultsScyan$Freq, Percentage = resultsScyan$Percentage)
-
-      # Sort by popID number
-      results <- results[order(as.numeric(results$popID)), ]
-
-      return(results)
-    })
-    names(listObject$resultsScyan) <- names(unlist(listObject$flow.frames))
-
-    updateSelectInput(session, "enrichedFile", choices = names(unlist(listObject$flow.frames)))
-  })
-
-
-  # Show result of selected files
-  observe({
-    
-
-    if (!is.null(listObject$resultsXGBoost)) {
-      
-      # Convert result into datatable format
-      resultsXGBoost <- DT::datatable(listObject$resultsXGBoost[[input$enrichedFile]], rownames = FALSE)
-      output$resultsXGBoost <- renderDT(resultsXGBoost)
-    }
-    if (!is.null(listObject$resultsScyan)) {
-      resultsScyan <- DT::datatable(listObject$resultsScyan[[input$enrichedFile]], rownames = FALSE)
-      output$resultsScyan <- renderDT(resultsScyan)
-    }
-    if (!is.null(listObject$resultsScaffold)) {
-      resultsScaffold <- DT::datatable(listObject$resultsScaffold[[input$enrichedFile]], rownames = FALSE)
-      output$resultsScaffold <- renderDT(resultsScaffold)
-    }
-  })
-  
-  
-    
-  output$downloadAll <- downloadHandler(
-    filename = function() {
-      paste0("All_Statistics_", Sys.Date(), ".zip")
-    },
-    content = function(file) {
-      # Create temporary repertory
-      temp_dir <- tempdir()
-      temp_files <- c()
-      
-
-      for (flow_frame_name in names(unlist(listObject$flow.frames))) {
-   
-        wb <- createWorkbook()
-        if (!is.null(listObject$resultsScyan)) {
-          addWorksheet(wb, "Scyan")
-          Scyan <- listObject$resultsScyan[[flow_frame_name]]
-          writeData(wb, sheet = "Scyan", Scyan)
-        }
+      box(
+        width = 12, 
+        title = "Annotation Scaffold",
+        status = "primary",
+        solidHeader = TRUE,
+        collapsible = TRUE,
         
-        if (!is.null(listObject$resultsXGBoost)) {
-          addWorksheet(wb, "XGBoost")
-          XGBoost <- listObject$resultsXGBoost[[flow_frame_name]]
-          writeData(wb, sheet = "XGBoost", XGBoost)
-        }
-        
-        if (!is.null(listObject$resultsScaffold)) {
-          addWorksheet(wb, "Scaffold")
-          Scaffold <- listObject$resultsScaffold[[flow_frame_name]]
-          writeData(wb, sheet = "Scaffold", Scaffold)
-        }
-        
-        
-        temp_file <- file.path(temp_dir, paste0(flow_frame_name, ".xlsx"))
-        saveWorkbook(wb, temp_file, overwrite = TRUE)
-        
-
-        temp_files <- c(temp_files, temp_file)
-      }
+        # CLARA clustering
+        box(
+          width = 12, 
+          status = "info", 
+          title = p('STEP 1 - Clustering (CLARA)', 
+                    actionButton("HELP_SCAFFOLD_CLUSTERING", "", icon("question-circle"), class = "btn-xs")
+          ),
+          
+          # Checkbox to determine if files are already clustered
+          checkboxInput("alreadyClustered", "Select if your file(s) is(are) already clustered", value = FALSE),
+          
+          # Show these inputs if "alreadyClustered" is unchecked
+          conditionalPanel(
+            condition = "input.alreadyClustered == false",
+            
+            # Button to choose markers used for clustering
+            selectizeInput("marker_clustering", "Markers used for clustering", choices = c(""), multiple = TRUE),
+            
+            # Set k parameter
+            numericInput("clustering_parameter", "k_parameter", value = 300),
+            
+            # Action button to run clustering
+            actionButton("clustering", "Run CLARA clustering", style = "background-color: #B2DFEE; border-width: 2px")
+          ),
+          
+          # Show this input if "alreadyClustered" is checked
+          conditionalPanel(
+            condition = "input.alreadyClustered == true",
+            
+            # Select input for the name of the column containing clusters
+            selectInput("clusteringColumn", "Choose name of column that contains clusters", choices = c(""), multiple = FALSE, width = 500),
+            
+            # Button to choose markers used for scaffold map
+            selectizeInput("marker_scaffoldmap", "Select markers for scaffold map", choices = c(""), multiple = TRUE),
+            
+          )
+        ),
       
-      zip::zipr(zipfile = file, files = temp_files)
-    }
-  )
-    
-  
-  
-  
-  
-  
-
-  observe({
-    
-    # If file is not clustered
-    listObject$clusteringColumn <- "CLARA"
-
-    if (input$alreadyClustered == TRUE) {
       
-      listObject$marker_untrans <- extract_markers(listObject$flow.frames[[1]], NULL)
+               
+              
+               
+          
+          
+          # Scaffold Map
+           box(width = 12 , status="info", title = p('STEP 2 - Build or load scaffold Map',actionButton("HELP_BUILD_MAP","", icon("question-circle"), class="btn-xs")),
+               fileInput("landmarks", "Add landmarks FCS", multiple = TRUE, buttonLabel = "Upload...", accept = c('.fcs')),
+               # Action button to build scaffod map
+               actionButton("scaffoldMap", "Build Scaffold Map", style = "background-color: #B2DFEE; border-width: 2px;"),
+               textOutput("messageBuildScaffoldMap"),
+               tags$div(style = "margin-top: 20px;",  # Ajout d'un espacement
+                        fileInput("oldScaffoldMap", " OR upload Scaffold Map :", 
+                                  multiple = FALSE, 
+                                  buttonLabel = "Upload ...", 
+                                  accept = c('.scaffold'))
+               )
+               
+               
 
-      updateSelectInput(session, "clusteringColumn", choices = listObject$marker_untrans)
-    }
-  })
-
-  
-  # VIZUALISATION
-  
-  observeEvent(input$run, {
-    roots.output <- "/home/maelleWorkspace/OUTPUT/"
-    roots.temp <- "/home/maelleWorkspace/TEMP/"
+           ),
+           
+          # Scaffold predictions
+           box(width = 12 , status="info", title = p('STEP 3 - Annotation',actionButton("HELP_SCAFFOLD_ANNOTATION","", icon("question-circle"), class="btn-xs")),
+               textInput("nameEnrichScaffold", "Please, enter the column name that will contain the SCAFFOLD enrichment:", "scaffoldPopID"),
+               # Action Button to run scaffold predictions
+               actionButton("RunScaffoldAnnotation", "Run Scaffold Annotation", style="background-color: #B2DFEE ; border-width: 2px"),
+               
+               textOutput("messageScaffoldAnnotation")
+               
     
-    # MultiOptSNE
+           )
 
-    if ("MultiOptSNE" %in% input$step) {
-      progress$set(message = "Write CSV", value = 0.1)
-
-      write.csv(listObject$flow.frames.enriched@exprs[, unlist(input$marker_clustering)], paste0(roots.temp, rep, ".csv"), quote = FALSE, row.names = FALSE)
-      progress$set(message = "Command line", value = 0.2)
-      a <- paste0(roots.temp, rep, ".csv")
-      b <- paste0(roots.temp, rep, "_tsne.csv")
-      temp <- paste0(roots.temp, rep, ".log")
-      iter <- 1000
-      run <- "/media/data/cyto/MultiOptTSNE/Multicore-opt-SNE/MulticoreTSNE/run/run_optsne.py"
-      cmd <- paste0(
-        "python2 ", run, " --optsne --data ", a,
-        " --outfile ", b, " --n_threads 35 --perp 30 --early_exaggeration 12 --n_iter ", iter, " ",
-        "> ", temp, " 2>&1"
       )
-      progress$set(message = "Run MultiOptTsne", value = 0.3)
+    ),
 
-      # Initialize output results
-      system(cmd)
-      roots.temp <- "/media/data/cyto/MultiOptTSNE/TEMP/"
-      c <- paste0(roots.temp, rep, "_tsne.csv")
-      mat <- read.csv(c, header = FALSE)
-      # tester 2-3 essais
-      if ("TSNE1" %in% colnames(fcs)) {
-        fcs@exprs[, "TSNE1"] <- as.vector(unlist(mat[, 1]))
+  # RESULTS
+    
+  conditionalPanel(
+    condition = "input.tab == 'Stats'",
+    titlePanel(""),  
+    
+    fluidRow(
+      div(class = "right-aligned",
+          selectInput("enrichedFile", "Choose file ", choices = list(""), selected = NULL, width = 800)
+      )
+    ),
+    
+    fluidRow(
+      box(width = 4, title = 'XGBoost results', status = "primary",
+          solidHeader = TRUE,
+          collapsible = TRUE,
+          DTOutput("resultsXGBoost")
+      ),
+      
+      box(width = 4, title = 'Scyan results', status = "primary",
+          solidHeader = TRUE,
+          collapsible = TRUE,
+          DTOutput("resultsScyan")
+      ),
+      
+      box(width = 4, title = 'Scaffold results', status = "primary",
+          solidHeader = TRUE,
+          collapsible = TRUE,
+          DTOutput("resultsScaffold")
+      )
+    ),
+    
+    fluidRow(
+      column(6, 
+             downloadButton('downloadAll', 'Download stats'),  
+             textOutput("download")  
+      )
+    )
+  )
+  
+  ,
+  # Visualization Panel with Legend
+  conditionalPanel(
+    condition = "input.tab == 'Visualizations'",
+    # Dropdown to select FCS file
+    selectInput("enrichedFileViz", "Choose a File", choices = list(), selected = NULL),
+    box(width = 8 , 
+      title = "Run Algorithm",
+      status = "primary",
+      solidHeader = TRUE,
+      collapsible = TRUE,
+      
+     
+        column(
+          width = 3,
+          
+          
+          # Input for selecting markers (columns)
+          selectizeInput("marker_viz", "Select markers", choices = c(), multiple = TRUE, width = "100%"),
+          
+          # Dropdown to select a column for coloring points
+          selectInput("color_by", "Color by", choices = c(), selected = NULL),
+          
+          # Checkbox group to select steps (PCA, UMAP, t-SNE)
+          checkboxGroupInput("step", "Run : ", choices = c("PCA", "UMAP", "t-SNE")),
+          
+          # Parameter settings for PCA
+          conditionalPanel(
+            condition = "input.step.includes('PCA')"
+          ),
+          
+          # Parameter settings for UMAP
+          conditionalPanel(
+            condition = "input.step.includes('UMAP')",
+            numericInput("umap_neighbors", "Number of Neighbors (UMAP)", value = 15, min = 2, max = 100),
+            numericInput("umap_min_dist", "Minimum Distance (UMAP)", value = 0.1, min = 0.01, max = 1, step = 0.01)
+          ),
+          
+          # Parameter settings for t-SNE
+          conditionalPanel(
+            condition = "input.step.includes('t-SNE')",
+            numericInput("tsne_perplexity", "Perplexity (t-SNE)", value = 30, min = 5, max = 50),
+            numericInput("tsne_theta", "Theta (Barnes-Hut Approximation) (t-SNE)", value = 0.5, min = 0, max = 1, step = 0.01),
+            numericInput("tsne_iterations", "Max Iterations (t-SNE)", value = 500, min = 250, max = 2000)
+          ),
+          
+          # Button to run the analysis
+          actionButton("run", "Run", style = "background-color: #B2DFEE; border-width: 2px; border-color: black;")
+        ),
         
-      } else {
-        fcs <- FlowCIPHE::enrich.FCS.CIPHE(fcs, mat[, 1], "TSNE1")
-      }
-      if ("TSNE2" %in% colnames(fcs)) {
-        fcs@exprs[, "TSNE2"] <- as.vector(unlist(mat[, 2]))
-      } else {
-        fcs <- FlowCIPHE::enrich.FCS.CIPHE(fcs, mat[, 2], "TSNE2")
-      }
-      values$data.concat <- fcs
-      auto_save_r_data()
-    }
-  })
+        column(
+          width = 9,
+          
+          # Tabs to display results for PCA, UMAP, and t-SNE
+          tabsetPanel(
+            tabPanel("PCA", 
+                     sliderInput("sizePoint", "Points size", value = 0.5, min = 0.1, max = 2,step=0.1),
+                     plotOutput("pcaPlot", height = "500px", width = "500px"),
+                  
+                     plotOutput("pcaDens", height = "500px", width = "500px"), # Density plot for PCA
+                     uiOutput("pcaLegend")),
+            tabPanel("UMAP", 
+                     sliderInput("sizePoint", "Points size", value = 0.5, min = 0.1, max = 2,step=0.1),
+                     plotOutput("umapPlot", height = "500px", width = "500px"),
+                  
+                     plotOutput("umapDens", height = "500px", width = "500px"), # Density plot for UMAP
+                  
+                     uiOutput("umapLegend")),
+            tabPanel("t-SNE", 
+                     sliderInput("sizePoint", "Points size", value = 0.5, min = 0.1, max = 2,step=0.1),
+                     plotOutput("tsnePlot", height = "500px", width = "500px"),
+                   
+                     plotOutput("tsneDens", height = "500px", width = "500px"), # Density plot for t-SNE
+                     
+                     uiOutput("tsneLegend"))
+          )
+          
+        )
+      
+    )
+  )
   
-  observeEvent(input$downloadFCS, {
-
-       if (!is.null(listObject$flow.frames.enriched)) {
-
-         lapply(listObject$flow.frames.enriched, function(x){
-         write.FCS(x,paste0(str_replace(names(unlist(listObject$flow.frames)),".fcs",""),"_corrected.fcs"))
-          })}
-
-
-
-
-  })
-
   
-}
+  )
+  
+  
+  
+)
