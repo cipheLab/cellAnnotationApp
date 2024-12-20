@@ -1736,12 +1736,12 @@ scaffold_cluster_export <- function(list1,list2,list.txt,scaffold.data){
   return(multi.tables)
 }
 
-scaffold_events_export <- function(list1, list2, list.flow.frames, scaffold.data, marker_e){
+scaffold_events_export <- function(list1, list2, list.flow.frames, scaffold.data, marker_e, enrichColumn){
 
   
   landmark <- rbind(scaffold_node_export(scaffold.data), c("null.landmark", 0, NA, NA))
   all.table <- scaffold_pop_export(scaffold.data)
-  print(all.table)
+
   node.index.x <- which(V(scaffold.data$graphs[[1]])$type==1)
   
   flow.frames.celltype <- lapply(c(1:length(list1)),function(x){
@@ -1810,7 +1810,7 @@ scaffold_events_export <- function(list1, list2, list.flow.frames, scaffold.data
     pop.index <- unlist(lapply(new_col.2,function(j){return(landmark[which(j==landmark[,"pop Names"]),"pop ID"])}))
     
     popIDscaffold <- as.matrix(as.numeric(pop.index))
-    colnames(popIDscaffold) <- "popIDscaffoldBis"
+    colnames(popIDscaffold) <- enrichColumn
     
     fcs.2 <- enrich.FCS.CIPHE(fcs, popIDscaffold)
     # fcs.2 <- flowCore::cbind2(fcs, popIDscaffold)
