@@ -8,7 +8,6 @@
 # Function that prepare the expression matrix with the good markers
 
 preparMatrix<-function(flowFrame,markersInFCSFile, markersInModel, algo){
-  
   # Extract expression matrix
   matrix<- as.data.frame(flowFrame@exprs)
   
@@ -26,10 +25,6 @@ preparMatrix<-function(flowFrame,markersInFCSFile, markersInModel, algo){
     markersInModel<-c(markersInModel)
     
   }
-  
-  print(markersInFCSFile)
-  
-  print(markersInModel)
   
   # Keep only markers you want
   df <- matrix[, markersInFCSFile]
@@ -144,10 +139,10 @@ pree_process_fcs <- function(flow.frames, arg, transformation, compens, markers_
       if(transformation == "arcsinh"){
         
         # ARCSINH
-        marker_trans <- colnames(flow.frame)[-which(colnames(flow.frame) %in% marker_untrans)]
+        marker_trans <- colnames(flow.frame)[-which(colnames(flow.frame) %in% markers_untrans)]
         
         # Apply arcsinh function
-        flow.frame <- arcsinh.CIPHE(flow.frame, marker_trans, arg)
+        flow.frame <- arcsinh.CIPHE(flow.frame, markers_untrans, arg)
         
       } else if (transformation == "logicle") {
       
@@ -289,14 +284,7 @@ builddCSVTab<-function(file, enrichName){
   return(res)
 }
 
-createScyanKnowledgeTable<-function(matrix){
-  
-  
 
-  
-  return(knowledgeTable)
-  
-}
 
 
 ############################################
@@ -307,39 +295,75 @@ createScyanKnowledgeTable<-function(matrix){
 ###### SCAFFOLD ANNOTATION
 
 # CLARA CLUSTERING
-
-claraClustering<-function(listFCS, k){
-
- progress <- Progress$new()
- 
- # Applu CLARA clustering to all files 
- mclapply(listFCS, mc.cores = 35, FUN = function(x){
-   
-   # Prepare matrix to have only selected markers
-    m <- prepareMatrix(x, x@exprs) 
-    
-    # CLuster data with clara clustering
-    cl <- cluster::clara(m, k , samples = 50)
-    
-    # Extracts clustering results
-    groups <- cl$clustering
-    
-    # Convert results to a matrix
-    new_col <- as.matrix(groups)
-    
-    # Name the column that contains clustering results
-    marker <- "CLARA"
-    
-    # Add column name
-    colnames(new_col) <- marker
+claraClustering <- function(listFCS, markersClustering,k) {
+  progress <- Progress$new()
   
-    # Add the new column that contains clustering results
-    fcs <- enrich.FCS.CIPHE(x, new_col)
+  # Detect the operating system
+  is_windows <- .Platform$OS.type == "windows"
   
- })
-  return(fcs)
- 
- }
+  if (is_windows) {
+    # Sequential execution for Windows
+    message("Windows OS detected: Running CLARA clustering sequentially...")
+    fcs_results <- lapply(seq_along(listFCS), function(i) {
+      # Update progress
+      progress$set(
+        message = paste0("Processing file ", i, " of ", length(listFCS), "..."),
+        value = i / length(listFCS)
+      )
+      
+      # Prepare matrix to have only selected markers
+      m <- listFCS[[i]]@exprs[,markersClustering]
+    
+      # Perform CLARA clustering
+      cl <- cluster::clara(m, k, samples = 50)
+      
+      # Extract clustering results
+      groups <- cl$clustering
+      
+      # Convert results to a matrix
+      new_col <- as.matrix(groups)
+      
+      # Name the column that contains clustering results
+      marker <- "CLARA"
+      
+      # Add column name
+      colnames(new_col) <- marker
+      
+      # Add the new column with clustering results
+      enrich.FCS.CIPHE(listFCS[[i]], new_col)
+    })
+  } else {
+    # Parallel execution for non-Windows systems
+    num_cores <- min(detectCores() - 1, 35) # Use up to 35 cores or available cores - 1
+    message("Non-Windows OS detected: Running CLARA clustering in parallel...")
+    
+    fcs_results <- mclapply(seq_along(listFCS), mc.cores = num_cores, FUN = function(i) {
+      # Prepare matrix to have only selected markers
+      m <- listFCS[[i]]@exprs[,markersClustering]
+      
+      # Perform CLARA clustering
+      cl <- cluster::clara(m, k, samples = 50)
+      
+      # Extract clustering results
+      groups <- cl$clustering
+      
+      # Convert results to a matrix
+      new_col <- as.matrix(groups)
+      
+      # Name the column that contains clustering results
+      marker <- "CLARA"
+      
+      # Add column name
+      colnames(new_col) <- marker
+      
+      # Add the new column with clustering results
+      enrich.FCS.CIPHE(listFCS[[i]], new_col)
+    })
+  }
+  
+  progress$close()
+  return(fcs_results)
+}
 
 
 # Function that build a scaffold map 
