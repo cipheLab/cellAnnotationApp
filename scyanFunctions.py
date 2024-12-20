@@ -1,23 +1,20 @@
+
 import scyan 
+import anndata
 import pandas as pd
 import numpy as np
 
-
-
+# Population is in first column
 def readKnowledgeTable(pathKnowledgeTable):
-    # Find file extension .csv, .xlsx, .xls)
+    
     file_extension = pathKnowledgeTable.split('.')[-1]
-
+  
     if file_extension == 'csv':
-        
+   
         table = pd.read_csv(pathKnowledgeTable, index_col=[0])
     elif file_extension in ['xlsx', 'xls']:
-     
-        table = pd.read_excel(pathKnowledgeTable, index_col=[0])
 
-    # Define Population as index 
-    if "Populations" in table.columns:
-        table.set_index("Populations", inplace=True)
+        table = pd.read_excel(pathKnowledgeTable, index_col=[0])
     
     return table
 
@@ -34,9 +31,9 @@ def builAnnDataObject (data):
 
 # Run the Scyan model
 
-def runModel(adata, table) :
+def runModel(adata, table, std, lr) :
  
- model = scyan.Scyan(adata, table, prior_std=0.25, lr=0.0001)
+ model = scyan.Scyan(adata, table, prior_std=std, lr=lr)
  model.fit(accelerator="cpu", profiler="simple")
 
  return model
@@ -60,9 +57,7 @@ def test(self):
    
 # Predict probability for each population
     df = self.predict_proba()
-    
-    print(df)
-     
+
     self.adata.obs["scyan_log_probs"] = df["max_log_prob_u"].values
     
     populations = df.iloc[:, :self.n_pops].idxmax(axis=1).astype("category")
@@ -90,4 +85,3 @@ def test(self):
     #     )
 #     
 #     return populations
-
